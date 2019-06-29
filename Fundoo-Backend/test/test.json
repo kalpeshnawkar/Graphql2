@@ -1,0 +1,19 @@
+ 
+    "registration"(
+        "firstName: "kshiteej",
+        "lastName": "nawkar",
+        "email": "nawkarkshiteej@gmail.com",
+        "password": "kshiteej@123"
+},
+    "login": {
+        "email": "nawkarkshiteej@gmail.com",
+        "password": "kshiteej@123"
+    },
+    "forgot": {
+        "email": "kshiteej@gmail.com"
+    },
+    "reset": {
+        "password": "kshiteej@1234"
+    }
+}
+}

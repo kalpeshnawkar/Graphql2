@@ -1,0 +1,313 @@
+const userModel = require("../../mongoDb/userSchema")
+const { checkToken } = require("../../middleware/vereifyToken")
+const { createApolloFetch } = require('apollo-fetch')
+const issueModel = require("../../mongoDb/IssueSchema")
+/**
+  * 
+  * @param {string} parent
+  * @param {string} root
+  * @param {String} context
+  */
+
+exports.gitCreateIssue = async (parent, args, context) => {
+    //check token provided or not 
+    try {
+        console.log("args===", args.starrableId)
+        if (context.token) {
+            //verified a token
+            var varifiedtoken = checkToken(context.token)
+            //find userid in userSchema
+            var user = await userModel.find({ "_id": varifiedtoken.id })
+            var access_token = user[0].gitToken
+            console.log("token=>>>", access_token);
+            //check user register or not
+            if (!user > 0) {
+                return {
+                    "message": "user not registered",
+                    "status": false
+                }
+            }
+
+            //check email id verfied or not
+            else if (user[0].isVerify == false) {
+                return {
+                    "message": "please,verify your email",
+                    "status": false
+                }
+            }
+
+            else {
+
+                var fetchData = createApolloFetch({
+                    uri: `https://api.github.com/graphql?access_token=${access_token}`
+                })
+                console.log("fetchdata==", fetchData)
+                var fetch = await fetchData({
+                    query: (`mutation {createIssue(input: {repositoryId: "${args.repositoryID}", title: "${args.title}",labelIds:[${args.labelID}],clientMutationId:"${args.gitID}"}){issue{id}}}`
+                    )
+                })
+
+
+                //var repositoriesData = fetch.data.repositoryOwner.repositories.nodes
+                console.log("repositoriesData==", fetch)
+                var issueID = fetch.data.createIssue.issue.id
+
+
+                var issueData = new issueModel({
+                    issueID: issueID,
+                    labelID: args.labelID,
+                    gitID: args.gitID,
+
+                })
+                var savedGitIssue = await issueData.save()
+                console.log("savedGitIssue==", savedGitIssue)
+
+
+                return {
+                    "message": "Issue created Successfully"
+                }
+
+            }
+        }
+
+    }
+    catch (err) {
+        console.log(err)
+    }
+}
+
+/**
+  * 
+  * @param {string} parent
+  * @param {string} root
+  * @param {String} context
+  */
+
+
+exports.gitDeleteIssue = async (parent, args, context) => {
+    //check token provided or not 
+    try {
+
+        if (context.token) {
+            //verified a token
+            var varifiedtoken = checkToken(context.token)
+            //find userid in userSchema
+            var user = await userModel.find({ "_id": varifiedtoken.id })
+            var access_token = user[0].gitToken
+            console.log("token=>>>", access_token);
+            //check user register or not
+            if (!user > 0) {
+                return {
+                    "message": "user not registered",
+                    "status": false
+                }
+            }
+
+            //check email id verfied or not
+            else if (user[0].isVerify == false) {
+                return {
+                    "message": "please,verify your email",
+                    "status": false
+                }
+            }
+
+            else {
+                var removedIssue = await issueModel.findOneAndDelete({ 'issueID': args.issueID })
+                console.log("removeNote==", removedIssue)
+                if (removedIssue) {
+                    var fetchData = createApolloFetch({
+                        uri: `https://api.github.com/graphql?access_token=${access_token}`
+                    })
+                    console.log("fetchdata==", fetchData)
+                    await fetchData({
+                        query: (`mutation {deleteIssue(input: {issueId: "${removedIssue.issueID}", clientMutationId: "${removedIssue.gitID}"}) {
+                          clientMutationId
+                        }
+                      }`
+                        )
+                    })
+                    return {
+                        "message": "issue delete successfully",
+                        'status': true,
+                        "issueID": removedIssue.issueID
+                    }
+                }
+                else {
+                    return {
+                        'message': 'isssue delete unsuccessfully',
+                        'status': false,
+
+                    }
+                }
+            }
+        }
+    }
+
+
+    catch (err) {
+        console.log(err)
+    }
+}
+
+
+
+/**
+  * 
+  * @param {string} parent
+  * @param {string} root
+  * @param {String} context
+  */
+
+exports.gitUpdateIssue = async (parent, args, context) => {
+    //check token provided or not 
+    try {
+
+        if (context.token) {
+            //verified a token
+            var varifiedtoken = checkToken(context.token)
+            //find userid in userSchema
+            var user = await userModel.find({ "_id": varifiedtoken.id })
+            var access_token = user[0].gitToken
+            console.log("token=>>>", access_token);
+            //check user register or not
+            if (!user > 0) {
+                return {
+                    "message": "user not registered",
+                    "status": false
+                }
+            }
+
+            //check email id verfied or not
+            else if (user[0].isVerify == false) {
+                return {
+                    "message": "please,verify your email",
+                    "status": false
+                }
+            }
+
+            else {
+                var savedIssueData = await issueModel.findOneAndUpdate({ issueID: args.issueID },
+                    {
+                        $set: {
+                            'labelID': args.labelID
+                        }
+
+
+                    }
+                )
+                console.log("savedIssueId==", savedIssueData.issueID)
+                console.log("savedIssueLabel==", savedIssueData.labelID)
+                console.log("savedIssueLabel==", savedIssueData)
+                if (savedIssueData == null) {
+                    return {
+                        "message": "Issue update Unsuccessful",
+                        "status": false
+                    }
+                }
+
+
+                var fetchData = createApolloFetch({
+                    uri: `https://api.github.com/graphql?access_token=${access_token}`
+                })
+                console.log("fetchdata==", fetchData)
+                var fetch = await fetchData({
+                    query: (`mutation{updateIssue(input:{id:"${args.issueID}",labelIds:"${args.labelID}"}){issue{id}} }`)
+                })
+
+
+                //var repositoriesData = fetch.data.repositoryOwner.repositories.nodes
+                console.log("repositoriesData==", fetch)
+
+                return {
+                    "message": "Issue update successfully"
+                }
+
+
+            }
+        }
+
+    }
+    catch (err) {
+        console.log(err)
+    }
+}
+
+
+
+
+/**
+  * 
+  * @param {string} parent
+  * @param {string} root
+  * @param {String} context
+  */
+
+exports.gitAddCommentIssue = async (parent, args, context) => {
+    //check token provided or not 
+    try {
+
+        if (context.token) {
+            //verified a token
+            var varifiedtoken = checkToken(context.token)
+            //find userid in userSchema
+            var user = await userModel.find({ "_id": varifiedtoken.id })
+            var access_token = user[0].gitToken
+            console.log("token=>>>", access_token);
+            //check user register or not
+            if (!user > 0) {
+                return {
+                    "message": "user not registered",
+                    "status": false
+                }
+            }
+
+            //check email id verfied or not
+            else if (user[0].isVerify == false) {
+                return {
+                    "message": "please,verify your email",
+                    "status": false
+                }
+            }
+
+            else {
+
+                var fetchData = createApolloFetch({
+                    uri: `https://api.github.com/graphql?access_token=${access_token}`
+                })
+                console.log("fetchdata==", fetchData)
+                var fetch = await fetchData({
+                    query: (`mutation {addComment(input:{subjectId:"${args.issueID}",body:"${args.issueComment}"}){ subject{id} } }`
+                    )
+                })
+
+
+                //var repositoriesData = fetch.data.repositoryOwner.repositories.nodes
+                console.log("repositoriesData==", fetch.data.addComment.subject.id)
+                var issueID = fetch.data.addComment.subject.id
+
+                var addedComment = await issueModel.findOneAndUpdate({ 'issueID': issueID },
+                    {
+                        $push: {
+                            "comments": args.issueComment
+                        },
+                    })
+                console.log(addedComment)
+                return {
+                    "message": "Issue add comment successfully "
+                }
+
+            }
+        }
+
+    }
+    catch (err) {
+        console.log(err)
+    }
+}
+
+
+
+
+
+
+

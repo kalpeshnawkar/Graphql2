@@ -1,0 +1,1 @@
+{"uuid":"1cf09aad-a868-4f50-8c21-80e91d3bed53","parent":null,"pid":21145,"argv":["/usr/bin/node","/usr/bin/npm","test"],"execArgv":[],"cwd":"/home/admin1/graphQL/Fundoo-Backend","time":1561555126301,"ppid":21133,"root":"b46a2ff6-4bdb-4629-96de-95afcb545ee1","coverageFilename":"/home/admin1/graphQL/Fundoo-Backend/.nyc_output/1cf09aad-a868-4f50-8c21-80e91d3bed53.json","files":[]}
